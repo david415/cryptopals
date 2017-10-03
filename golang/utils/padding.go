@@ -1,12 +1,11 @@
-package main
+package utils
 
 import (
 	"bytes"
 	"errors"
-	"fmt"
 )
 
-func pkcs7Pad(input []byte, blockSize int) ([]byte, error) {
+func PKCS7Pad(input []byte, blockSize int) ([]byte, error) {
 	if blockSize >= 256 || blockSize <= 0 {
 		return nil, errors.New("specified block size is invalid")
 	}
@@ -22,7 +21,7 @@ func pkcs7Pad(input []byte, blockSize int) ([]byte, error) {
 	return append(input, pad...), nil
 }
 
-func pkcs7Unpad(input []byte, blockSize int) ([]byte, error) {
+func PKCS7Unpad(input []byte, blockSize int) ([]byte, error) {
 	if blockSize >= 256 || blockSize <= 0 {
 		return nil, errors.New("specified block size is invalid")
 	}
@@ -41,20 +40,4 @@ func pkcs7Unpad(input []byte, blockSize int) ([]byte, error) {
 		}
 	}
 	return input[:len(input)-padlen], nil
-}
-
-func main() {
-	input := "YELLOW SUBMARINE"
-	padded, err := pkcs7Pad([]byte(input), 20)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("padded: %x\n", padded)
-	unpadded, err := pkcs7Unpad([]byte(padded), 20)
-	if err != nil {
-		panic(err)
-	}
-	if !bytes.Equal([]byte(input), unpadded) {
-		panic("padding failure")
-	}
 }

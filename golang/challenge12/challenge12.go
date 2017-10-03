@@ -1,4 +1,4 @@
-package main
+package challenge12
 
 import (
 	"bytes"
@@ -7,50 +7,14 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"fmt"
-	"math/big"
+
+	"github.com/david415/cryptopals/golang/utils"
 )
-
-func genRandMinMax(max, min int) (int, error) {
-	n, err := rand.Int(rand.Reader, big.NewInt(int64(max-min)))
-	if err != nil {
-		return 0, err
-	}
-	return int(n.Int64()), nil
-}
-
-func pkcs7Pad(input []byte, blockSize int) ([]byte, error) {
-	if blockSize >= 256 || blockSize <= 0 {
-		return nil, errors.New("specified block size is invalid")
-	}
-	if len(input) >= blockSize || len(input) == 0 {
-		return nil, errors.New("input block size is invalid")
-	}
-	padlen := 1
-	for ((len(input) + padlen) % blockSize) != 0 {
-		padlen = padlen + 1
-	}
-	pad := bytes.Repeat([]byte{byte(padlen)}, padlen)
-	return append(input, pad...), nil
-}
-
-func getBlocks(ciphertext []byte, blockSize int) [][]byte {
-	blocks := [][]byte{}
-	for i := 0; i < len(ciphertext); i += blockSize {
-		if i+blockSize > len(ciphertext)-1 {
-			blocks = append(blocks, ciphertext[i:])
-		} else {
-			blocks = append(blocks, ciphertext[i:i+blockSize])
-		}
-	}
-	return blocks
-}
 
 type ECBOracle struct {
 	blockSize int
 	key       []byte
 	cipher    cipher.Block
-	Debug     bool
 }
 
 func NewECBOracle() (*ECBOracle, error) {
@@ -67,20 +31,19 @@ func NewECBOracle() (*ECBOracle, error) {
 		blockSize: 16,
 		key:       key[:],
 		cipher:    aesCipher,
-		Debug:     false,
 	}
 	return &o, nil
 }
 
 func (o *ECBOracle) encrypt(input []byte) ([]byte, error) {
 	output := []byte{}
-	blocks := getBlocks(input, o.blockSize)
+	blocks := utils.GetBlocks(input, o.blockSize)
 	for i := 0; i < len(blocks); i++ {
 
 		if i == len(blocks)-1 {
 			// always apply padding to the last block
 			if len(blocks[i]) < o.blockSize {
-				padded, err := pkcs7Pad(blocks[i], o.blockSize)
+				padded, err := utils.PKCS7Pad(blocks[i], o.blockSize)
 				if err != nil {
 					return nil, err
 				}
@@ -139,23 +102,7 @@ func (o *ECBOracle) FindBlockSize() (int, error) {
 	return 0, errors.New("blocksize not detected")
 }
 
-func isECB(input []byte) bool {
-	blockMap := make(map[[16]byte]bool)
-	blocks := getBlocks(input, 16)
-	for _, block := range blocks {
-		blockArr := [16]byte{}
-		copy(blockArr[:], block)
-		_, ok := blockMap[blockArr]
-		if ok {
-			return true
-		} else {
-			blockMap[blockArr] = true
-		}
-	}
-	return false
-}
-
-func createTrialData(blockSize, blockIndex, blockOffset, maxBlocks int, plaintext []byte, currentBlockPlaintext []byte, lastByte byte) []byte {
+func CreateTrialData(blockSize, blockIndex, blockOffset, maxBlocks int, plaintext []byte, currentBlockPlaintext []byte, lastByte byte) ([]byte, error) {
 	output := []byte{}
 	if blockSize-(blockOffset+1) != 0 {
 		output = bytes.Repeat([]byte("A"), blockSize-(blockOffset+1))
@@ -168,95 +115,65 @@ func createTrialData(blockSize, blockIndex, blockOffset, maxBlocks int, plaintex
 	}
 	output = append(output, lastByte)
 	if blockIndex == maxBlocks-1 {
-		blocks := getBlocks(output, blockSize)
+		blocks := utils.GetBlocks(output, blockSize)
 		if len(blocks[blockIndex]) < blockSize {
-			unpadded, err := pkcs7Pad(blocks[blockIndex], blockSize)
+			unpadded, err := utils.PKCS7Pad(blocks[blockIndex], blockSize)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
 			output = append(output, unpadded...)
 		}
 	}
-	return output
+	return output, nil
 }
 
-func createRetrievalData(blockSize, blockNum, blockOffset int) []byte {
+func CreateRetrievalData(blockSize, blockNum, blockOffset int) []byte {
 	output := bytes.Repeat([]byte("A"), (blockSize - (blockOffset + 1)))
 	return output
 }
 
-func main() {
-	key := [16]byte{}
-	_, err := rand.Reader.Read(key[:])
-	if err != nil {
-		panic(err)
-	}
-	oracle, err := NewECBOracle()
-	if err != nil {
-		panic(err)
-	}
-	blockSize, err := oracle.FindBlockSize()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("block size %d\n", blockSize)
-
-	input := bytes.Repeat([]byte("A"), 32)
-	output, err := oracle.Query(input)
-	if err != nil {
-		panic(err)
-	}
-
-	if isECB(output) {
-		fmt.Println("ECB detected")
-	} else {
-		panic("wtf, not ECB")
-	}
-
-	// use oracle to decrypt unknown section of ciphertext
-
-	// get number of blocks in unknown ciphertext output
-	input = []byte{}
+func BreakOracleString(maxBlocks, blockSize int, oracle *ECBOracle) ([]byte, error) {
+	var err error
+	plaintext := []byte{}
+	input := []byte{}
 	ciphertext, err := oracle.Query(input)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	fmt.Printf("oracle ciphertext length is %d\n", len(ciphertext))
-	blocks := getBlocks(ciphertext, blockSize)
-	maxBlocks := len(blocks)
-	fmt.Printf("%d ciphertext blocks\n", maxBlocks)
+	blocks := utils.GetBlocks(ciphertext, blockSize)
 
-	plaintext := []byte{}
 	for blockIndex := 0; blockIndex < maxBlocks; blockIndex++ {
 		blockPlaintext := []byte{}
 		for blockOffset := 0; blockOffset < blockSize; blockOffset++ {
 			lastMap := make(map[[16]byte]byte)
 			for val := 0; val < 256; val++ {
-				input = createTrialData(blockSize, blockIndex, blockOffset, maxBlocks, plaintext, blockPlaintext, byte(val))
+				input, err = CreateTrialData(blockSize, blockIndex, blockOffset, maxBlocks, plaintext, blockPlaintext, byte(val))
+				if err != nil {
+					return nil, err
+				}
 				ciphertext, err = oracle.Query(input)
 				if err != nil {
-					panic(err)
+					return nil, err
 				}
-				blocks = getBlocks(ciphertext, blockSize)
+				blocks = utils.GetBlocks(ciphertext, blockSize)
 				blockSlice := blocks[blockIndex]
 				block := [16]byte{} // XXX
 				copy(block[:], blockSlice)
 				_, ok := lastMap[block]
 				if ok {
-					panic("wtf duplicate map keys")
+					return nil, errors.New("wtf duplicate map keys")
 				}
 				lastMap[block] = byte(val)
 			}
 			if len(lastMap) != 256 {
-				panic("wtf oracle map is invalid")
+				return nil, errors.New("wtf oracle map is invalid")
 			}
-			input = createRetrievalData(blockSize, blockIndex, blockOffset)
-			oracle.Debug = true
+			input = CreateRetrievalData(blockSize, blockIndex, blockOffset)
 			ciphertext, err = oracle.Query(input)
 			if err != nil {
-				panic(err)
+				return nil, err
 			}
-			blocks := getBlocks(ciphertext, blockSize)
+			blocks := utils.GetBlocks(ciphertext, blockSize)
 			block := [16]byte{} // XXX
 			copy(block[:], blocks[blockIndex])
 			_, ok := lastMap[block]
@@ -265,7 +182,7 @@ func main() {
 			}
 			blockPlaintext = append(blockPlaintext, lastMap[block])
 		}
-		fmt.Print(string(blockPlaintext))
 		plaintext = append(plaintext, blockPlaintext...)
 	}
+	return plaintext, nil
 }
