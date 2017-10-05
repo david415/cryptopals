@@ -23,13 +23,17 @@ func EncryptOracle(input []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	ecbCipher, err := ecb.New(key)
+	if err != nil {
+		return nil, err
+	}
 	mode, err := rand.Int(rand.Reader, big.NewInt(int64(2)))
 	if err != nil {
 		return nil, err
 	}
 	output := []byte{}
 	if mode.Int64() == int64(0) {
-		output, err = ecb.ECBEncrypt(input, key[:])
+		output, err = ecbCipher.Encrypt(input)
 		if err != nil {
 			return nil, err
 		}

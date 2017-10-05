@@ -142,8 +142,12 @@ func TestChallenge7(t *testing.T) {
 	require.NoError(err, "wtf")
 	ciphertext, err := base64.StdEncoding.DecodeString(string(b))
 	require.NoError(err, "wtf")
-	key := "YELLOW SUBMARINE"
-	output, err := ecb.ECBDecrypt(ciphertext, []byte(key))
+	keyStr := "YELLOW SUBMARINE"
+	key := [16]byte{}
+	copy(key[:], []byte(keyStr))
+	ecbCipher, err := ecb.New(key)
+	require.NoError(err, "wtf")
+	output, err := ecbCipher.Decrypt(ciphertext)
 	require.NoError(err, "wtf")
 	t.Log(string(output))
 	require.True(strings.Contains(string(output), "funky music"), "wtf")

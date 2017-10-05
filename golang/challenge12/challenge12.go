@@ -2,19 +2,18 @@ package challenge12
 
 import (
 	"bytes"
-	"crypto/aes"
-	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
 
+	"github.com/david415/cryptopals/golang/ecb"
 	"github.com/david415/cryptopals/golang/utils"
 )
 
 type ECBOracle struct {
 	blockSize int
 	key       []byte
-	cipher    cipher.Block
+	cipher    *ecb.ECBAESCipher
 }
 
 func NewECBOracle() (*ECBOracle, error) {
@@ -23,47 +22,21 @@ func NewECBOracle() (*ECBOracle, error) {
 	if err != nil {
 		return nil, err
 	}
-	aesCipher, err := aes.NewCipher(key[:])
+	cipher, err := ecb.New(key)
 	if err != nil {
 		return nil, err
 	}
 	o := ECBOracle{
 		blockSize: 16,
 		key:       key[:],
-		cipher:    aesCipher,
+		cipher:    cipher,
 	}
 	return &o, nil
 }
 
 func (o *ECBOracle) encrypt(input []byte) ([]byte, error) {
-	output := []byte{}
-	blocks := utils.GetBlocks(input, o.blockSize)
-	for i := 0; i < len(blocks); i++ {
-
-		if i == len(blocks)-1 {
-			// always apply padding to the last block
-			if len(blocks[i]) < o.blockSize {
-				padded, err := utils.PKCS7Pad(blocks[i], o.blockSize)
-				if err != nil {
-					return nil, err
-				}
-				dst := make([]byte, o.blockSize)
-				o.cipher.Encrypt(dst, padded)
-				output = append(output, dst...)
-			} else {
-				dst := make([]byte, o.blockSize)
-				o.cipher.Encrypt(dst, blocks[i])
-				output = append(output, dst...)
-				lastBlock := bytes.Repeat([]byte{byte(o.blockSize)}, o.blockSize)
-				output = append(output, lastBlock...)
-			}
-		} else {
-			dst := make([]byte, o.blockSize)
-			o.cipher.Encrypt(dst, blocks[i])
-			output = append(output, dst...)
-		}
-	}
-	return output, nil
+	output, err := o.cipher.Encrypt(input)
+	return output, err
 }
 
 func (o *ECBOracle) Query(input []byte) ([]byte, error) {

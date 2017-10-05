@@ -1,39 +1,69 @@
 package ecb
 
 import (
+	"bytes"
 	"crypto/aes"
+	"crypto/cipher"
 
 	"github.com/david415/cryptopals/golang/utils"
 )
 
-func ECBDecrypt(input []byte, key []byte) ([]byte, error) {
-	output := []byte{}
-	blocks := utils.GetBlocks(input, len(key))
-	cipher, err := aes.NewCipher([]byte(key))
+// ECBAESCipher is AES-128 in ECB mode
+type ECBAESCipher struct {
+	key       [16]byte
+	cipher    cipher.Block
+	blockSize int
+}
+
+func New(key [16]byte) (*ECBAESCipher, error) {
+	aesCipher, err := aes.NewCipher(key[:])
 	if err != nil {
 		return nil, err
 	}
-	for _, block := range blocks {
-		dst := make([]byte, len(key))
-		cipher.Decrypt(dst, block)
-		output = append(output, dst...)
+	c := ECBAESCipher{
+		key:       key,
+		cipher:    aesCipher,
+		blockSize: 16,
+	}
+	return &c, nil
+}
+
+func (c *ECBAESCipher) Encrypt(input []byte) ([]byte, error) {
+	output := []byte{}
+	blocks := utils.GetBlocks(input, c.blockSize)
+	for i := 0; i < len(blocks); i++ {
+		if i == len(blocks)-1 {
+			// always apply padding to the last block
+			if len(blocks[i]) < c.blockSize {
+				padded, err := utils.PKCS7Pad(blocks[i], c.blockSize)
+				if err != nil {
+					return nil, err
+				}
+				dst := make([]byte, c.blockSize)
+				c.cipher.Encrypt(dst, padded)
+				output = append(output, dst...)
+			} else {
+				dst := make([]byte, c.blockSize)
+				c.cipher.Encrypt(dst, blocks[i])
+				output = append(output, dst...)
+				lastBlock := bytes.Repeat([]byte{byte(c.blockSize)}, c.blockSize)
+				output = append(output, lastBlock...)
+			}
+		} else {
+			dst := make([]byte, c.blockSize)
+			c.cipher.Encrypt(dst, blocks[i])
+			output = append(output, dst...)
+		}
 	}
 	return output, nil
 }
 
-func ECBEncrypt(input []byte, key []byte) ([]byte, error) {
+func (c *ECBAESCipher) Decrypt(input []byte) ([]byte, error) {
 	output := []byte{}
-	blocks := utils.GetBlocks(input, len(key))
-	cipher, err := aes.NewCipher([]byte(key))
-	if err != nil {
-		return nil, err
-	}
+	blocks := utils.GetBlocks(input, c.blockSize)
 	for _, block := range blocks {
-		dst := make([]byte, len(key))
-		if len(block) < 16 {
-			block, err = utils.PKCS7Pad(block, 16)
-		}
-		cipher.Encrypt(dst, block)
+		dst := make([]byte, c.blockSize)
+		c.cipher.Decrypt(dst, block)
 		output = append(output, dst...)
 	}
 	return output, nil
