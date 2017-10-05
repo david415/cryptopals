@@ -11,6 +11,7 @@ import (
 	"github.com/david415/cryptopals/golang/cbc"
 	"github.com/david415/cryptopals/golang/challenge11"
 	"github.com/david415/cryptopals/golang/challenge12"
+	"github.com/david415/cryptopals/golang/challenge13"
 	"github.com/david415/cryptopals/golang/ecb"
 	"github.com/david415/cryptopals/golang/utils"
 	"github.com/stretchr/testify/require"
@@ -94,8 +95,27 @@ func TestChallenge12(t *testing.T) {
 }
 
 // TestChallenge13 is my solution to https://cryptopals.com/sets/2/challenges/13
-// func TestChallenge13(t *testing.T) {
-// 	require := require.New(t)
+func TestChallenge13(t *testing.T) {
+	require := require.New(t)
 
-// 	require.True(true, "wtf")
-// }
+	oracle, err := challenge13.NewECBOracle()
+	require.NoError(err, "wtf")
+	wtfProfile := oracle.ProfileFor("blahblahbladmin           ")
+	ciphertext, err := oracle.Encrypt([]byte(wtfProfile))
+	require.NoError(err, "wtf")
+	blocks := utils.GetBlocks(ciphertext, 16)
+	adminBlock := blocks[1]
+	profile := oracle.ProfileFor("four@blah.net")
+	ciphertext, err = oracle.Encrypt([]byte(profile))
+	require.NoError(err, "wtf")
+	blocks = utils.GetBlocks(ciphertext, 16)
+	pwnBlocks := [][]byte{
+		blocks[0],
+		blocks[1],
+		adminBlock,
+	}
+	pwnCiphertext := bytes.Join(pwnBlocks, []byte(""))
+	role, err := oracle.DecryptAndParse(pwnCiphertext)
+	require.NoError(err, "wtf")
+	require.True(role.IsAdmin(), "wtf")
+}
