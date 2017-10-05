@@ -34,7 +34,7 @@ func TestChallenge9(t *testing.T) {
 func TestChallenge10(t *testing.T) {
 	require := require.New(t)
 
-	b, err := ioutil.ReadFile("vectors/10.txt")
+	b, err := ioutil.ReadFile("test_vectors/10.txt")
 	require.NoError(err, "wtf")
 	ciphertext, err := base64.StdEncoding.DecodeString(string(b))
 	require.NoError(err, "wtf")

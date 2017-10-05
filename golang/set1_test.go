@@ -72,7 +72,7 @@ func TestChallenge3(t *testing.T) {
 func TestChallenge4(t *testing.T) {
 	require := require.New(t)
 
-	fh, err := os.Open("vectors/4.txt")
+	fh, err := os.Open("test_vectors/4.txt")
 	require.NoError(err, "wtf")
 	reader := bufio.NewReader(fh)
 	highScore := 0
@@ -116,7 +116,7 @@ I go crazy when I hear a cymbal`
 func TestChallenge6(t *testing.T) {
 	require := require.New(t)
 
-	b, err := ioutil.ReadFile("vectors/6.txt")
+	b, err := ioutil.ReadFile("test_vectors/6.txt")
 	require.NoError(err, "wtf")
 	ciphertext, err := base64.StdEncoding.DecodeString(string(b))
 	require.NoError(err, "wtf")
@@ -138,7 +138,7 @@ func TestChallenge6(t *testing.T) {
 func TestChallenge7(t *testing.T) {
 	require := require.New(t)
 
-	b, err := ioutil.ReadFile("vectors/7.txt")
+	b, err := ioutil.ReadFile("test_vectors/7.txt")
 	require.NoError(err, "wtf")
 	ciphertext, err := base64.StdEncoding.DecodeString(string(b))
 	require.NoError(err, "wtf")
@@ -158,7 +158,7 @@ func TestChallenge8(t *testing.T) {
 	require := require.New(t)
 
 	blockSize := 16
-	fh, err := os.Open("vectors/8.txt")
+	fh, err := os.Open("test_vectors/8.txt")
 	if err != nil {
 		panic(err)
 	}
