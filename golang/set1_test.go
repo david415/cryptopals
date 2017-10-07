@@ -182,7 +182,7 @@ func TestChallenge8(t *testing.T) {
 			_, ok := blockMap[blockArr]
 			if ok {
 				hasDupBlocks = true
-				fmt.Println("duplicate blocks detected!")
+				t.Log("duplicate blocks detected!")
 			} else {
 				blockMap[blockArr] = true
 			}
