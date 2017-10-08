@@ -1,7 +1,5 @@
 
 use std::f32;
-use std::cmp::Ordering;
-
 pub use xor::xor_with_one;
 
 macro_rules! map(

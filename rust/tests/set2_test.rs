@@ -3,6 +3,9 @@ extern crate rustc_serialize as serialize;
 extern crate cryptopals;
 
 use serialize::hex::ToHex;
+use serialize::base64::FromBase64;
+use std::fs::File;
+use std::io::prelude::*;
 
 
 #[test]
@@ -12,4 +15,19 @@ fn challenge9() {
     let out_str = String::from_utf8_lossy(block.as_ref());
     println!("{}", out_str);
     println!("{}", block.to_hex());
+}
+
+#[test]
+fn challenge10() {
+    let mut fh = File::open("../test_vectors/10.txt").unwrap();
+    let mut content: Vec<u8> = Vec::new();
+    fh.read_to_end(&mut content).unwrap();
+    let ciphertext = content.from_base64().unwrap();
+    let key_str = "YELLOW SUBMARINE";
+    let iv = vec![0; 16];
+    let cipher = cryptopals::cbc::CBCAESCipher::new(key_str.as_ref());
+    let plaintext = cipher.decrypt(iv.as_ref(), ciphertext.as_ref());
+    let out_str = String::from_utf8_lossy(plaintext.as_ref());
+    println!("{}", out_str);
+    assert!(out_str.contains("Play that funky music"));
 }
