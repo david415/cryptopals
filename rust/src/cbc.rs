@@ -41,19 +41,39 @@ impl CBCAESCipher {
         return plaintext;
     }
 
-    // pub fn encrypt(&self, iv: &[u8], plaintext: &[u8]) -> Vec<u8> {
-    //     assert!(iv.len() == BLOCK_SIZE as usize);
-    //     let blocks = get_blocks(plaintext.as_ref(), BLOCK_SIZE);
-    //     let mut ciphertext: Vec<u8> = vec![];
-    //     let mut prev_block = iv.to_vec();
-    //     for block in blocks {
-    //         let mut xor_block: Vec<u8> = vec![0; BLOCK_SIZE as usize];
-    //         let mut ciphertext_block: Vec<u8> = vec![0; BLOCK_SIZE as usize];
-    //         xor(prev_block.as_ref(), block.as_ref(), xor_block.as_mut_slice());
-    //         self.encryptor.encrypt_block(xor_block.as_ref(), ciphertext_block.as_mut_slice());
-    //         prev_block = ciphertext_block;
-    //         ciphertext.extend(ciphertext_block);
-    //     }
-    //     return ciphertext;
-    // }
+    pub fn encrypt(&self, iv: &[u8], plaintext: &[u8]) -> Vec<u8> {
+        assert!(iv.len() == BLOCK_SIZE as usize);
+        let blocks = get_blocks(plaintext.as_ref(), BLOCK_SIZE);
+        let mut ciphertext: Vec<u8> = vec![];
+        let mut prev_block = iv.to_vec();
+        let mut ciphertext_block: Vec<u8> = vec![0; BLOCK_SIZE as usize];
+        for block in blocks {
+            let mut xor_block: Vec<u8> = vec![0; BLOCK_SIZE as usize];
+            xor(prev_block.as_ref(), block.as_ref(), xor_block.as_mut_slice());
+            self.encryptor.encrypt_block(xor_block.as_ref(), ciphertext_block.as_mut_slice());
+            prev_block = ciphertext_block.clone();
+            ciphertext.extend(ciphertext_block.clone());
+        }
+        return ciphertext;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    extern crate rand;
+    use super::*;
+    use self::rand::Rng;
+    use self::rand::os::OsRng;
+
+    #[test]
+    fn simple_encrypt_decrypt_test() {
+        let mut rnd = OsRng::new().unwrap();
+        let key = rnd.gen_iter::<u8>().take(BLOCK_SIZE as usize).collect::<Vec<u8>>();
+        let cipher = CBCAESCipher::new(key.as_ref());
+        let plaintext = String::from("YELLOW SUBMARINE");
+        let mut iv: Vec<u8> = vec![0; plaintext.len()];
+        let ciphertext = cipher.encrypt(iv.as_ref(), plaintext.as_ref());
+        let plaintext2 = cipher.decrypt(iv.as_ref(), ciphertext.as_ref());
+        assert!(plaintext.into_bytes() == plaintext2);
+    }
 }

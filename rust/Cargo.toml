@@ -6,3 +6,7 @@ authors = ["David Stainton <dstainton415@gmail.com>"]
 [dependencies]
 rustc-serialize = "0.3.24"
 rust-crypto = "^0.2"
+rand = "^0.3"
+
+[dev-dependencies]
+rand = "^0.3"

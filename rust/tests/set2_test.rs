@@ -31,3 +31,14 @@ fn challenge10() {
     println!("{}", out_str);
     assert!(out_str.contains("Play that funky music"));
 }
+
+#[test]
+fn challenge11() {
+    let plaintext = vec![12; cryptopals::ecb::BLOCK_SIZE as usize * 3];
+    let ciphertext = cryptopals::challenge11::encrypt_oracle(plaintext.as_ref());
+    if cryptopals::blocks::has_duplicate_blocks(ciphertext.as_ref(), cryptopals::ecb::BLOCK_SIZE) {
+        println!("ECB mode detected");
+    } else {
+        println!("ECB mode NOT detected");
+    }
+}
