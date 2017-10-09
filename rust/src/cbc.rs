@@ -71,7 +71,7 @@ mod tests {
         let key = rnd.gen_iter::<u8>().take(BLOCK_SIZE as usize).collect::<Vec<u8>>();
         let cipher = CBCAESCipher::new(key.as_ref());
         let plaintext = String::from("YELLOW SUBMARINE");
-        let mut iv: Vec<u8> = vec![0; plaintext.len()];
+        let iv: Vec<u8> = vec![0; plaintext.len()];
         let ciphertext = cipher.encrypt(iv.as_ref(), plaintext.as_ref());
         let plaintext2 = cipher.decrypt(iv.as_ref(), ciphertext.as_ref());
         assert!(plaintext.into_bytes() == plaintext2);

@@ -42,3 +42,19 @@ fn challenge11() {
         println!("ECB mode NOT detected");
     }
 }
+
+#[test]
+fn challenge12() {
+    let oracle = cryptopals::challenge12::EncryptionOracle::new();
+    let block_size = oracle.find_block_size();
+    assert!(block_size == cryptopals::ecb::BLOCK_SIZE as i16);
+
+    let plaintext = vec![12; cryptopals::ecb::BLOCK_SIZE as usize * 2];
+    let ciphertext = oracle.encrypt(plaintext.as_ref());
+    assert!(cryptopals::blocks::has_duplicate_blocks(ciphertext.as_ref(), cryptopals::ecb::BLOCK_SIZE) == true);
+
+    let empty_input = vec![];
+    let ciphertext = oracle.encrypt(empty_input.as_ref());
+    let max_blocks = cryptopals::blocks::get_blocks(ciphertext.as_ref(), cryptopals::ecb::BLOCK_SIZE);
+
+}
