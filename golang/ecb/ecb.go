@@ -1,7 +1,6 @@
 package ecb
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 
@@ -33,21 +32,15 @@ func (c *ECBAESCipher) Encrypt(input []byte) ([]byte, error) {
 	blocks := utils.GetBlocks(input, c.blockSize)
 	for i := 0; i < len(blocks); i++ {
 		if i == len(blocks)-1 {
-			// always apply padding to the last block
-			if len(blocks[i]) < c.blockSize {
-				padded, err := utils.PKCS7Pad(blocks[i], c.blockSize)
-				if err != nil {
-					return nil, err
-				}
+			pading, err := utils.PKCS7Pad(blocks[i], c.blockSize)
+			if err != nil {
+				return nil, err
+			}
+			padded_blocks := utils.GetBlocks(pading, c.blockSize)
+			for j := 0; j < len(padded_blocks); j++ {
 				dst := make([]byte, c.blockSize)
-				c.cipher.Encrypt(dst, padded)
+				c.cipher.Encrypt(dst, padded_blocks[j])
 				output = append(output, dst...)
-			} else {
-				dst := make([]byte, c.blockSize)
-				c.cipher.Encrypt(dst, blocks[i])
-				output = append(output, dst...)
-				lastBlock := bytes.Repeat([]byte{byte(c.blockSize)}, c.blockSize)
-				output = append(output, lastBlock...)
 			}
 		} else {
 			dst := make([]byte, c.blockSize)

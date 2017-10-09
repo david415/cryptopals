@@ -39,5 +39,5 @@ func PKCS7Unpad(input []byte, blockSize int) ([]byte, error) {
 			return nil, errors.New("invalid padding")
 		}
 	}
-	return input[:len(input)-padlen], nil
+	return input[0 : len(input)-padlen], nil
 }
