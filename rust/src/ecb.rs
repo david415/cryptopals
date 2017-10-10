@@ -7,7 +7,7 @@ use self::crypto::symmetriccipher::BlockEncryptor;
 use self::crypto::aessafe::AesSafe128Encryptor;
 
 use blocks::get_blocks;
-use padding::pkcs7_pad;
+use padding::{pkcs7_pad, pkcs7_unpad};
 
 pub const BLOCK_SIZE: u8 = 16;
 
@@ -28,10 +28,18 @@ impl ECBAESCipher {
     pub fn decrypt(&self, ciphertext: &[u8]) -> Vec<u8> {
         let blocks = get_blocks(ciphertext.as_ref(), BLOCK_SIZE);
         let mut plaintext: Vec<u8> = vec![];
-        for block in blocks {
+        for i in 0 .. blocks.len() {
             let mut out_vec: Vec<u8> = vec![0; BLOCK_SIZE as usize];
-            self.decryptor.decrypt_block(block, out_vec.as_mut_slice());
-            plaintext.extend(out_vec);
+            self.decryptor.decrypt_block(blocks[i], out_vec.as_mut_slice());
+            assert!(out_vec.len() == BLOCK_SIZE as usize);
+            if i == blocks.len() - 1 {
+                let unpadded = pkcs7_unpad(&out_vec, BLOCK_SIZE);
+                if unpadded.len() != 0 {
+                    plaintext.extend(unpadded);
+                }
+            } else {
+                plaintext.extend(out_vec);
+            }
         }
         return plaintext;
     }
