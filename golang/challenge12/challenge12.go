@@ -113,7 +113,7 @@ func BreakOracleString(maxBlocks, blockSize int, oracle *ECBOracle) ([]byte, err
 	if err != nil {
 		return nil, err
 	}
-	blocks := utils.GetBlocks(ciphertext, blockSize)
+	blocks := [][]byte{}
 
 	for blockIndex := 0; blockIndex < maxBlocks; blockIndex++ {
 		blockPlaintext := []byte{}
