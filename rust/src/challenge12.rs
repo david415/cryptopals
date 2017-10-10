@@ -30,22 +30,27 @@ impl EncryptionOracle {
         let out = self.cipher.encrypt(plaintext.as_ref());
         return out;
     }
-
-    pub fn find_block_size(&self) -> i16 {
-        let mut prev_delta = 0;
-        let empty_input = vec![];
-        let ciphertext = self.encrypt(empty_input.as_ref());
-        let cipher_size = ciphertext.len() as i16;
-        for i in 0 .. 100 {
-            let input = vec![0; i];
-            let output = self.encrypt(input.as_ref());
-            let delta = output.len() as i16 - input.len() as i16;
-            let offset = delta - prev_delta;
-            if offset != cipher_size && offset+1 != 0 {
-                return offset + 1;
-            }
-            prev_delta = delta;
-        }
-        return 0;
-    }
 }
+
+pub fn find_block_size(oracle: &EncryptionOracle) -> i16 {
+    let mut prev_delta = 0;
+    let empty_input = vec![];
+    let ciphertext = oracle.encrypt(empty_input.as_ref());
+    let cipher_size = ciphertext.len() as i16;
+    for i in 0 .. 100 {
+        let input = vec![0; i];
+        let output = oracle.encrypt(input.as_ref());
+        let delta = output.len() as i16 - input.len() as i16;
+        let offset = delta - prev_delta;
+        if offset != cipher_size && offset+1 != 0 {
+            return offset + 1;
+        }
+        prev_delta = delta;
+    }
+    return 0;
+}
+
+
+// pub fn create_trial_data(block_size: u8, block_index: u8, block_offset: u8, max_blocks: u8, plaintext: &[u8], current_block_plaintext: &[u8], last_byte: u8) {
+
+// }

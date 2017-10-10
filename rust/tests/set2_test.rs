@@ -46,7 +46,7 @@ fn challenge11() {
 #[test]
 fn challenge12() {
     let oracle = cryptopals::challenge12::EncryptionOracle::new();
-    let block_size = oracle.find_block_size();
+    let block_size = cryptopals::challenge12::find_block_size(&oracle);
     assert!(block_size == cryptopals::ecb::BLOCK_SIZE as i16);
 
     let plaintext = vec![12; cryptopals::ecb::BLOCK_SIZE as usize * 2];
