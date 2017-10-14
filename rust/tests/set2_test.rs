@@ -55,6 +55,11 @@ fn challenge12() {
 
     let empty_input = vec![];
     let ciphertext = oracle.encrypt(empty_input.as_ref());
-    let max_blocks = cryptopals::blocks::get_blocks(ciphertext.as_ref(), cryptopals::ecb::BLOCK_SIZE);
+    let blocks = cryptopals::blocks::get_blocks(ciphertext.as_ref(), cryptopals::ecb::BLOCK_SIZE);
+    let max_blocks = blocks.len();
 
+    let plaintext = cryptopals::challenge12::break_oracle_string(max_blocks as u8, block_size as u8, &oracle);
+    let out_str = String::from_utf8_lossy(plaintext.as_ref());
+    println!("results: {}", out_str);
+    //assert!(out_str.contains("I just drove by"));
 }
