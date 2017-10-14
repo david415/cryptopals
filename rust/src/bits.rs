@@ -51,19 +51,12 @@ impl PartialEq for PotentialKeySize {
 pub fn estimate_key_size(ciphertext: &[u8]) -> u8 {
     let mut potentials: Vec<PotentialKeySize> = vec![];
     for key_size in 2..40 {
-        let mut distances: Vec<f32> = vec![];
-        for i in (0..ciphertext.len()).take(key_size) {
-            if key_size * (i + 3) > ciphertext.len() {
-                break
-            }
-            let a = ciphertext.to_vec();
-            let b = ciphertext.to_vec();
-            let distance = hamming_distance(&a[key_size * i .. key_size * (i + 1)],
-                                            &b[key_size * (i + 2) .. key_size * (i + 3)]) as f32;
-            distances.push(distance);
-        }
-        let sum = distances.iter().fold(0_f32, |mut sum, &x| {sum += x; sum});
-        let average = (sum / distances.len() as f32) / key_size as f32;
+        let (sum, count) = (0..ciphertext.len()).skip(key_size)
+            .filter(|j| key_size * (j + 3) <= ciphertext.len())
+            .map(|i| hamming_distance(&ciphertext[key_size * i .. key_size * (i + 1)],
+                                            &ciphertext[key_size * (i + 2) .. key_size * (i + 3)]) as f32)
+            .fold((0., 0), |(sum, count), x| (sum + x, count + 1));
+        let average = (sum / count as f32) / key_size as f32;
         let p = PotentialKeySize::new(average, key_size as u8);
         potentials.push(p);
     }
