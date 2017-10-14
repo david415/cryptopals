@@ -90,17 +90,17 @@ func CreateTrialData(blockSize, blockIndex, blockOffset, maxBlocks int, plaintex
 	if blockIndex == maxBlocks-1 {
 		blocks := utils.GetBlocks(output, blockSize)
 		if len(blocks[blockIndex]) < blockSize {
-			unpadded, err := utils.PKCS7Pad(blocks[blockIndex], blockSize)
+			padded, err := utils.PKCS7Pad(blocks[blockIndex], blockSize)
 			if err != nil {
 				return nil, err
 			}
-			output = append(output, unpadded...)
+			output = append(output, padded...)
 		}
 	}
 	return output, nil
 }
 
-func CreateRetrievalData(blockSize, blockNum, blockOffset int) []byte {
+func CreateRetrievalData(blockSize, blockOffset int) []byte {
 	output := bytes.Repeat([]byte("A"), (blockSize - (blockOffset + 1)))
 	return output
 }
@@ -141,7 +141,7 @@ func BreakOracleString(maxBlocks, blockSize int, oracle *ECBOracle) ([]byte, err
 			if len(lastMap) != 256 {
 				return nil, errors.New("wtf oracle map is invalid")
 			}
-			input = CreateRetrievalData(blockSize, blockIndex, blockOffset)
+			input = CreateRetrievalData(blockSize, blockOffset)
 			ciphertext, err = oracle.Query(input)
 			if err != nil {
 				return nil, err
