@@ -1,27 +1,22 @@
 
 use std::collections::HashMap;
 
-pub fn get_vec_blocks(ciphertext: &Vec<u8>, block_size: u8) -> Vec<Vec<u8>> {
-    let mut blocks = vec![];
-    let mut i = 0;
-    for j in 0..ciphertext.len() {
-        if i >= ciphertext.len() {
-            break
-        }
-        if i + block_size as usize > ciphertext.len() {
-            blocks.push(ciphertext[i ..].to_vec());
-        } else {
-            blocks.push(ciphertext[i .. i + block_size as usize].to_vec());
-        }
-        i += block_size as usize;
+pub fn get_nth_block(ciphertext: &[u8], nth: u8, block_size: u8) -> Result<&[u8], &str> {
+    let nth_block = nth as usize * block_size as usize;
+    if nth_block > ciphertext.len() {
+        return Err("block index exceeds length of input");
     }
-    return blocks;
+    if nth_block + (block_size as usize) < ciphertext.len() {
+        Ok(&ciphertext[nth_block .. nth_block + block_size as usize])
+    } else {
+        Ok(&ciphertext[nth_block .. ciphertext.len()])
+    }
 }
 
-pub fn get_blocks<'a>(ciphertext: &'a [u8], block_size: u8) -> Vec<&'a [u8]> {
-    let mut blocks: Vec<&'a [u8]> = vec![];
+pub fn get_blocks(ciphertext: &[u8], block_size: u8) -> Vec<&[u8]> {
+    let mut blocks: Vec<&[u8]> = vec![];
     let mut i = 0;
-    for j in 0..ciphertext.len() {
+    for _ in 0..ciphertext.len() {
         if i >= ciphertext.len() {
             break
         }

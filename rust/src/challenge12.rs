@@ -7,7 +7,7 @@ use self::serialize::base64::FromBase64;
 
 use ecb::ECBAESCipher;
 use ecb::BLOCK_SIZE;
-use blocks::get_vec_blocks;
+use blocks::{get_nth_block, get_blocks};
 use padding::pkcs7_pad;
 
 pub struct EncryptionOracle {
@@ -75,49 +75,45 @@ pub fn create_trial_data(block_size: u8, block_index: u8, block_offset: u8, max_
     }
     output.push(last_byte);
     if block_index == max_blocks - 1 {
-        let blocks = get_vec_blocks(&output, block_size);
-        if blocks[block_index as usize].len() < block_size as usize {
-            let padded = pkcs7_pad(&blocks[block_index as usize], block_size);
-            output.extend(padded);
+        let mut padded = vec![];
+        {
+            let blocks = get_blocks(&output, block_size);
+            if blocks[block_index as usize].len() < block_size as usize {
+                padded = pkcs7_pad(&blocks[block_index as usize], block_size);
+            }
         }
+        output.extend(padded);
     }
     return output;
 }
 
 pub fn break_oracle_string(max_blocks: u8, block_size: u8, oracle: &EncryptionOracle) -> Vec<u8> {
     let mut plaintext = vec![];
-    let mut input = vec![];
-    let mut ciphertext = oracle.encrypt(&input);
-    let mut blocks = vec![];
-    let block_index: u16 = 0;
     for block_index in 0 .. max_blocks {
         let mut block_plaintext = vec![];
-        let block_offset: u8 = 0;
         for block_offset in 0 .. block_size {
-            let mut last_map = ::std::collections::HashMap::new();
+            let mut last_map = ::std::collections::HashMap::with_capacity(500);
             for val in 0 .. 256_u16{
-                input = create_trial_data(block_size, block_index, block_offset, max_blocks, &plaintext, &block_plaintext, val as u8);
-                let input_str = String::from_utf8_lossy(input.as_ref());
-                ciphertext = oracle.encrypt(&input);
-                blocks = get_vec_blocks(&ciphertext, block_size);
-                let map_key = blocks[block_index as usize].clone();
+                let input = create_trial_data(block_size, block_index, block_offset, max_blocks, &plaintext, &block_plaintext, val as u8);
+                let ciphertext = oracle.encrypt(&input);
+                let block = get_nth_block(&ciphertext, block_index, block_size).unwrap();
+                let map_key = block.to_owned();
                 if last_map.contains_key(&map_key) {
                     return vec![]; // XXX add error handling here
                 }
                 last_map.insert(map_key, val as u8);
             }
             assert!(last_map.len() == 256);
-            input = create_retrieval_data(block_size, block_offset);
-            ciphertext = oracle.encrypt(&input);
-            blocks = get_vec_blocks(&ciphertext, block_size);
-            let map_key = blocks[block_index as usize].clone();
+            let input = create_retrieval_data(block_size, block_offset);
+            let ciphertext = oracle.encrypt(&input);
+            let block = get_nth_block(&ciphertext, block_index, block_size).unwrap();
+            let map_key = block.to_owned();
             if !last_map.contains_key(&map_key) {
                 continue
             }
             block_plaintext.push(last_map[&map_key]);
         }
         plaintext.extend(block_plaintext);
-        let plaintext_str = String::from_utf8_lossy(plaintext.as_ref());
     }
     return plaintext;
 }
